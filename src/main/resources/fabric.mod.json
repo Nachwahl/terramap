@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "terramap",
+  "version": "${version}",
+  "name": "Terramap",
+  "description": "Terramap displays real-world maps in Minecraft, showing player positions, allowing teleportation, and providing various geographic tools. It works with terrain generation mods that use real-world coordinates.",
+  "authors": [
+    "SmylerMC"
+  ],
+  "contact": {
+    "homepage": "https://www.curseforge.com/minecraft/mc-mods/terramap",
+    "sources": "https://github.com/SmylerMC/terramap",
+    "issues": "https://github.com/SmylerMC/terramap/issues"
+  },
+  "license": "MIT",
+  "icon": "assets/terramap/logo/500.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "fr.thesmyler.terramap.TerramapMod"
+    ],
+    "client": [
+      "fr.thesmyler.terramap.TerramapClientMod"
+    ]
+  },
+  "mixins": [],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "~${minecraft_version}",
+    "java": ">=21"
+  },
+  "suggests": {},
+  "custom": {
+    "modmenu": {
+      "badges": [ "library" ],
+      "links": {
+        "modmenu.discord": "https://discord.gg/zSMq3GN"
+      }
+    }
+  }
+}

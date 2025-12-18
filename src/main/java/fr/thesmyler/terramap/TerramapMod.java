@@ -1,93 +1,128 @@
 package fr.thesmyler.terramap;
 
-import java.io.File;
-import java.util.Map;
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.loader.api.FabricLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import org.apache.logging.log4j.Logger;
-
-import fr.thesmyler.terramap.TerramapVersion.InvalidVersionString;
-import fr.thesmyler.terramap.TerramapVersion.ReleaseType;
 import fr.thesmyler.terramap.eventhandlers.CommonTerramapEventHandler;
+import fr.thesmyler.terramap.eventhandlers.ServerTerramapEventHandler;
+import fr.thesmyler.terramap.network.TerramapNetworkManager;
+import fr.thesmyler.terramap.TerramapVersion.ReleaseType;
 import fr.thesmyler.terramap.maps.raster.MapStylesLibrary;
 import fr.thesmyler.terramap.permissions.PermissionManager;
-import fr.thesmyler.terramap.proxy.TerramapProxy;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.Mod.EventHandler;
-import net.minecraftforge.fml.common.SidedProxy;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
-import net.minecraftforge.fml.common.network.NetworkCheckHandler;
-import net.minecraftforge.fml.relauncher.Side;
 
-//TODO Credit TwelveMonkeys in the readme
-@Mod(modid=TerramapMod.MODID, useMetadata=true, dependencies="required-after:terraplusplus@[1.0.569,)")
-public class TerramapMod {
+import java.io.File;
+
+/**
+ * Main Terramap mod initializer for Fabric
+ * This class handles common (both client and server) initialization
+ */
+public class TerramapMod implements ModInitializer {
 
     public static final String MODID = "terramap";
     public static final String AUTHOR_EMAIL = "smyler at mail dot com";
     public static final String STYLE_UPDATE_HOSTNAME = "styles.terramap.thesmyler.fr";
-    private static TerramapVersion version; // Read from the metadata
+    private static TerramapVersion version;
 
     // These are notable versions
     public static final TerramapVersion OLDEST_COMPATIBLE_CLIENT = new TerramapVersion(1, 0, 0, ReleaseType.BETA, 6, 0);
     public static final TerramapVersion OLDEST_COMPATIBLE_SERVER = new TerramapVersion(1, 0, 0, ReleaseType.BETA, 6, 0);
     public static final TerramapVersion OLDEST_TERRA121_TERRAMAP_VERSION = new TerramapVersion(1, 0, 0, ReleaseType.BETA, 6, 7);
 
-    public static Logger logger;
+    public static final Logger logger = LoggerFactory.getLogger(MODID);
 
-    /* Proxy things */
-    private static final String CLIENT_PROXY_CLASS = "fr.thesmyler.terramap.proxy.TerramapClientProxy";
-    private static final String SERVER_PROXY_CLASS = "fr.thesmyler.terramap.proxy.TerramapServerProxy";
-    @SidedProxy(clientSide = TerramapMod.CLIENT_PROXY_CLASS, serverSide = TerramapMod.SERVER_PROXY_CLASS)
-    public static TerramapProxy proxy;
+    @Override
+    public void onInitialize() {
+        logger.info("Terramap common initialization starting");
 
-    @EventHandler
-    public void preInit(FMLPreInitializationEvent event) {
-        logger = event.getModLog();
-        String versionStr = event.getModMetadata().version;
-        if (System.getProperties().containsKey("terramap.debug")) {
-            logger.info("Debug flag is set, forcing a development version string.");
-            versionStr= "${version}";
-        }
-        try {
-            TerramapMod.version = new TerramapVersion(versionStr);
-        } catch(InvalidVersionString e) {
-            logger.error("Failed to parse Terramap version number from string " + versionStr + ", will be assuming a 1.0.0 release.");
-            TerramapMod.version = new TerramapVersion(1, 0, 0);
-        }
-        TerramapMod.logger.info("Terramap version: " + getVersion());
-        TerramapMod.proxy.preInit(event);
-        File mapStyleFile = new File(event.getModConfigurationDirectory().getAbsolutePath() + "/terramap_user_styles.json");
+        // Initialize version
+        initializeVersion();
+
+        // Initialize configuration
+        File configDir = FabricLoader.getInstance().getConfigDir().toFile();
+        File mapStyleFile = new File(configDir, "terramap_user_styles.json");
         MapStylesLibrary.setConfigMapFile(mapStyleFile);
+
+        // Register permissions
+        PermissionManager.registerNodes();
+
+        // Load map styles
+        MapStylesLibrary.loadFromConfigFile();
+
+        // Register server lifecycle events
+        registerServerEvents();
+
+        // Register common event handlers
+        CommonTerramapEventHandler.register();
+        
+        // Register server event handlers (if on dedicated server)
+        if (isDedicatedServer()) {
+            ServerTerramapEventHandler.register();
+        }
+        
+        // Register networking handlers
+        TerramapNetworkManager.registerServerHandlers();
+
+        logger.info("Terramap common initialization complete - version: {}", getVersion());
     }
 
-    @EventHandler
-    public void init(FMLInitializationEvent event) {
-        MinecraftForge.EVENT_BUS.register(new CommonTerramapEventHandler());
-        TerramapMod.proxy.init(event);
-        PermissionManager.registerNodes();
-        MapStylesLibrary.loadFromConfigFile();
+    private void initializeVersion() {
+        // Try to read version from mod metadata
+        String versionStr = FabricLoader.getInstance()
+                .getModContainer(MODID)
+                .map(container -> container.getMetadata().getVersion().getFriendlyString())
+                .orElse("${version}");
+
+        if (System.getProperties().containsKey("terramap.debug")) {
+            logger.info("Debug flag is set, forcing a development version string.");
+            versionStr = "${version}";
+        }
+
+        try {
+            TerramapMod.version = new TerramapVersion(versionStr);
+        } catch (InvalidVersionString e) {
+            logger.error("Failed to parse Terramap version number from string {}, will be assuming a 1.0.0 release.", versionStr);
+            TerramapMod.version = new TerramapVersion(1, 0, 0);
+        }
+    }
+
+    private void registerServerEvents() {
+        ServerLifecycleEvents.SERVER_STARTING.register(server -> {
+            logger.debug("Server starting event");
+            // TODO: Initialize server-side functionality
+            // TODO: Register commands
+        });
+
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            logger.debug("Server started event");
+        });
+
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            logger.debug("Server stopping event");
+        });
     }
 
     public static TerramapVersion getVersion() {
         try {
-            return TerramapMod.version != null ? TerramapMod.version: new TerramapVersion("0.0.0");
+            return TerramapMod.version != null ? TerramapMod.version : new TerramapVersion("0.0.0");
         } catch (InvalidVersionString e) {
             throw new IllegalStateException("Version 0.0.0 should not be invalid");
         }
     }
 
-    @NetworkCheckHandler
-    public boolean isRemoteCompatible(Map<String, String> remote, Side side) {
-        return true; // Anything should be ok, the actual check is done in the server event handler
+    /**
+     * Check if we're running on the client
+     */
+    public static boolean isClient() {
+        return FabricLoader.getInstance().getEnvironmentType() == net.fabricmc.api.EnvType.CLIENT;
     }
 
-    @EventHandler
-    public void onServerStarts(FMLServerStartingEvent event) {
-        proxy.onServerStarting(event);
+    /**
+     * Check if we're running on a dedicated server
+     */
+    public static boolean isDedicatedServer() {
+        return FabricLoader.getInstance().getEnvironmentType() == net.fabricmc.api.EnvType.SERVER;
     }
-
-
 }

@@ -1,42 +1,49 @@
 package fr.thesmyler.terramap.network;
 
 import fr.thesmyler.terramap.TerramapClientContext;
-import io.netty.buffer.ByteBuf;
-import net.minecraft.client.Minecraft;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.network.PacketByteBuf;
 
-public class S2CTpCommandPacket implements IMessage {
+/**
+ * Server to Client packet containing teleportation command
+ * Converted from Forge IMessage to Fabric packet
+ */
+public class S2CTpCommandPacket {
 
-    public String cmd = "";
+    private final String cmd;
 
     public S2CTpCommandPacket(String cmd) {
         this.cmd = cmd;
     }
 
-    public S2CTpCommandPacket() {}
-
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        this.cmd = NetworkUtil.decodeStringFromByteBuf(buf);
-    }
-
-    @Override
-    public void toBytes(ByteBuf buf) {
+    /**
+     * Encode packet data to buffer
+     */
+    public void encode(PacketByteBuf buf) {
         NetworkUtil.encodeStringToByteBuf(this.cmd, buf);
     }
 
-    public static class S2CTpCommandPacketHandler implements IMessageHandler<S2CTpCommandPacket, IMessage> {
-
-        public S2CTpCommandPacketHandler() {}
-
-        @Override
-        public IMessage onMessage(S2CTpCommandPacket message, MessageContext ctx) {
-            Minecraft.getMinecraft().addScheduledTask(() -> TerramapClientContext.getContext().setTpCommand(message.cmd));
-            return null;
-        }
-
+    /**
+     * Decode packet data from buffer
+     */
+    public static S2CTpCommandPacket decode(PacketByteBuf buf) {
+        String cmd = NetworkUtil.decodeStringFromByteBuf(buf);
+        return new S2CTpCommandPacket(cmd);
     }
 
+    /**
+     * Handle the packet on the client side
+     */
+    @Environment(EnvType.CLIENT)
+    public void handle() {
+        MinecraftClient.getInstance().execute(() -> {
+            TerramapClientContext.getContext().setTpCommand(this.cmd);
+        });
+    }
+
+    public String getCommand() {
+        return this.cmd;
+    }
 }

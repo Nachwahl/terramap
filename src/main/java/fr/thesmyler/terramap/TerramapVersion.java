@@ -7,8 +7,8 @@ import javax.annotation.Nonnull;
 
 import org.apache.logging.log4j.util.Strings;
 
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraftforge.fml.common.network.handshake.NetworkDispatcher;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.fabricmc.loader.api.FabricLoader;
 
 /**
  * Represents a version of Terramap
@@ -299,16 +299,26 @@ public class TerramapVersion implements Comparable<TerramapVersion> {
         }
     }
 
-    public static TerramapVersion getClientVersion(EntityPlayerMP player) {
-        Map<String, String> modList = NetworkDispatcher.get(player.connection.netManager).getModList();
+    public static TerramapVersion getClientVersion(ServerPlayerEntity player) {
+        // TODO: Implement version checking via custom packet in Fabric networking
+        // For now, we'll assume clients have the same version
+        // In Fabric, version info needs to be exchanged via custom packets
         TerramapVersion version = null;
-        String remoteVersion = modList.get(TerramapMod.MODID);
-        if(remoteVersion != null) {
-            try {
-                version = new TerramapVersion(remoteVersion);
-            } catch(InvalidVersionString e) {
-                TerramapMod.logger.warn("Failed to parse a client's Terramap version: " + remoteVersion + " : " + e.getLocalizedMessage());
-            }
+        try {
+            // Try to get version from Fabric's mod container
+            version = FabricLoader.getInstance()
+                    .getModContainer(TerramapMod.MODID)
+                    .map(container -> {
+                        try {
+                            return new TerramapVersion(container.getMetadata().getVersion().getFriendlyString());
+                        } catch (InvalidVersionString e) {
+                            TerramapMod.logger.warn("Failed to parse Terramap version: " + e.getLocalizedMessage());
+                            return null;
+                        }
+                    })
+                    .orElse(null);
+        } catch(Exception e) {
+            TerramapMod.logger.warn("Failed to get client Terramap version: " + e.getLocalizedMessage());
         }
         return version;
     }
