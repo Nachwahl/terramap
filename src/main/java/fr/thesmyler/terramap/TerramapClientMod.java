@@ -7,6 +7,8 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 
+import fr.thesmyler.terramap.eventhandlers.ClientTerramapEventHandler;
+
 import javax.imageio.ImageIO;
 
 /**
@@ -75,9 +77,8 @@ public class TerramapClientMod implements ClientModInitializer {
             // This replaces ClientTerramapEventHandler tick handling
         });
 
-        // TODO: Register rendering events
-        // TODO: Register input events
-        // TODO: Register world events
+        // Register client event handlers
+        ClientTerramapEventHandler.register();
     }
 
     private void registerClientCommands() {

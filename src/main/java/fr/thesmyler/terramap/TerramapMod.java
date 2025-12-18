@@ -6,7 +6,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import fr.thesmyler.terramap.TerramapVersion.InvalidVersionString;
+import fr.thesmyler.terramap.eventhandlers.CommonTerramapEventHandler;
 import fr.thesmyler.terramap.TerramapVersion.ReleaseType;
 import fr.thesmyler.terramap.maps.raster.MapStylesLibrary;
 import fr.thesmyler.terramap.permissions.PermissionManager;
@@ -52,8 +52,8 @@ public class TerramapMod implements ModInitializer {
         // Register server lifecycle events
         registerServerEvents();
 
-        // TODO: Register common event handlers (need to convert from Forge event system)
-        // TODO: Initialize networking (need to convert from Forge SimpleNetworkWrapper)
+        // Register common event handlers
+        CommonTerramapEventHandler.register();
 
         logger.info("Terramap common initialization complete - version: {}", getVersion());
     }
