@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 
 import fr.thesmyler.terramap.eventhandlers.ClientTerramapEventHandler;
+import fr.thesmyler.terramap.network.TerramapNetworkManager;
 
 import javax.imageio.ImageIO;
 

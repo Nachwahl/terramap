@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import fr.thesmyler.terramap.eventhandlers.CommonTerramapEventHandler;
+import fr.thesmyler.terramap.eventhandlers.ServerTerramapEventHandler;
+import fr.thesmyler.terramap.network.TerramapNetworkManager;
 import fr.thesmyler.terramap.TerramapVersion.ReleaseType;
 import fr.thesmyler.terramap.maps.raster.MapStylesLibrary;
 import fr.thesmyler.terramap.permissions.PermissionManager;
@@ -54,6 +56,14 @@ public class TerramapMod implements ModInitializer {
 
         // Register common event handlers
         CommonTerramapEventHandler.register();
+        
+        // Register server event handlers (if on dedicated server)
+        if (isDedicatedServer()) {
+            ServerTerramapEventHandler.register();
+        }
+        
+        // Register networking handlers
+        TerramapNetworkManager.registerServerHandlers();
 
         logger.info("Terramap common initialization complete - version: {}", getVersion());
     }
