@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "terramap",
+  "version": "${version}",
+  "name": "Terramap",
+  "description": "Terramap displays web maps of the real world (OpenStreetMap, Mapbox satellite, and others) directly in Minecraft. It features both a minimap and full-screen map with player tracking, teleportation, and various tools for interacting with the world. Uses TerraMinusMinus for coordinate conversion.",
+  "authors": [
+    {
+      "name": "SmylerMC",
+      "contact": {
+        "homepage": "https://www.curseforge.com/minecraft/mc-mods/terramap"
+      }
+    }
+  ],
+  "contact": {
+    "homepage": "https://www.curseforge.com/minecraft/mc-mods/terramap",
+    "sources": "https://github.com/SmylerMC/terramap",
+    "issues": "https://github.com/SmylerMC/terramap/issues"
+  },
+  "license": "MIT",
+  "icon": "assets/terramap/logo/1000.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "fr.thesmyler.terramap.TerramapMod"
+    ],
+    "client": [
+      "fr.thesmyler.terramap.TerramapClientMod"
+    ]
+  },
+  "mixins": [
+    "terramap.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "~${minecraft_version}",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "suggests": {},
+  "custom": {
+    "modmenu": {
+      "badges": [ "library" ],
+      "parent": {
+        "id": "terramap",
+        "name": "Terramap",
+        "badges": [ "library" ]
+      }
+    }
+  }
+}
